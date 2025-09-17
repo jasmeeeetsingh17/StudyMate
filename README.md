@@ -1,84 +1,23 @@
-☑️ React Task Manager
-A feature-rich and responsive single-page application built with React for managing your daily tasks. This app allows you to create, edit, delete, and track your to-dos, with all data persistently stored in your browser's local storage.
+# React Task Manager
 
-The application is structured with clear routing to separate pending and completed tasks, providing a clean and organized user experience. It also features a dark mode for comfortable viewing in any lighting condition.
+A simple React task management application with support for creating, editing, deleting, and completing tasks. Tasks are persisted in `localStorage` so that they remain after a page reload. The app also supports viewing completed tasks separately.
 
-<br>
+## Features
 
-✨ Features
-Create, Read, Update, Delete (CRUD) Tasks: Full functionality to manage your task list.
+- Add new tasks
+- Edit existing tasks
+- Delete tasks
+- Mark tasks as completed / incomplete
+- View completed tasks
+- Persistent storage using `localStorage`
+- Light and dark mode support (Tailwind CSS)
 
-Mark Tasks Complete: Toggle the completion status of any task.
+## Tech Stack
 
-Separate Views: Dedicated pages for pending tasks and completed tasks, managed via React Router.
+- React
+- React Router DOM
+- Tailwind CSS
+- Local Storage for persistence
 
-Persistent Storage: Tasks are saved in the browser's localStorage, so your data is preserved even after closing the tab or browser.
+## Folder Structure
 
-Edit Functionality: Easily click an "edit" button to populate the task form with existing data and update it.
-
-Responsive Design: A clean, modern UI built with Tailwind CSS that works on all screen sizes.
-
-Dark Mode: The UI seamlessly adapts to your system's theme preference.
-
-🚀 Getting Started
-Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
-
-Prerequisites
-You need to have Node.js and npm (or yarn) installed on your computer.
-
-Node.js (which includes npm)
-
-Installation
-Clone the repository:
-
-Bash
-
-git clone https://github.com/your-username/your-repo-name.git
-Navigate to the project directory:
-
-Bash
-
-cd your-repo-name
-Install dependencies:
-
-Bash
-
-npm install
-or if you use yarn:
-
-Bash
-
-yarn install
-Run the development server:
-
-Bash
-
-npm start
-or with yarn:
-
-Bash
-
-yarn start
-The application will open automatically in your default browser at http://localhost:3000.
-
-🔧 Technologies Used
-React.js: A JavaScript library for building user interfaces.
-
-React Router: For declarative routing and navigation within the single-page application.
-
-Tailwind CSS: A utility-first CSS framework for rapid UI development.
-
-📂 Project Structure
-The project follows a standard React application structure.
-
-src
-├── components/       # Reusable UI components
-│   ├── Header.js
-│   ├── TaskList.js
-│   └── TaskForm.js
-│
-├── pages/            # Page-level components
-│   ├── HomePage.js
-│   └── CompletedTaskPage.js
-│
-└── App.js            # Main component: handles state, logic, and routing
