@@ -62,7 +62,7 @@ export default function Header() {
                         Login
                     </NavLink>
                     <NavLink
-                        to="/signup"
+                        to="/SignUp"
                         className="px-3 py-1 text-sm font-medium text-blue-600 border border-blue-600 rounded hover:bg-blue-50 dark:hover:bg-gray-700"
                     >
                         Sign Up

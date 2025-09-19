@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from "./components/Header";
+import Login from "./components/Login";
+import SignUp from "./components/SignUp";
 import HomePage from "./pages/HomePage";
 import TaskList from "./components/TaskList";
 import TaskForm from './components/TaskForm';
@@ -88,6 +90,8 @@ function App() {
                   onToggleComplete={handleToggleComplete}
                 />}
             />
+            <Route path="/Login" element={<Login />} />
+            <Route path="/SignUp" element={<SignUp />} />
           </Routes>
         </main>
       </Router>
