@@ -8,6 +8,7 @@ import HomePage from "./pages/HomePage";
 import TaskList from "./components/TaskList";
 import TaskForm from './components/TaskForm';
 import CompletedTasksPage from './pages/CompletedTaskPage';
+import AccountPage from './pages/AccountPage';
 
 function App() {
   const [tasks, setTasks] = useState(() => {
@@ -88,7 +89,10 @@ function App() {
               </>
             ) : (
               <>
-                <Route path="/" element={<HomePage />} />
+                <Route
+                  path="/"
+                  element={<HomePage tasks={tasks} />}
+                />
                 <Route
                   path="/tasks"
                   element={
@@ -120,6 +124,7 @@ function App() {
                     />
                   }
                 />
+                <Route path="/account" element={<AccountPage user={user} />} />
                 {/* redirect any unknown route to home */}
                 <Route path="*" element={<Navigate to="/" />} />
               </>
