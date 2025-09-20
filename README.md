@@ -1,26 +1,50 @@
-# 📝 React Task Manager
+# 📚 StudyMate
 
-A simple **React task management application** with support for creating, editing, deleting, and completing tasks. Tasks are persisted in `localStorage` so that they remain after a page reload. The app also supports viewing completed tasks separately.
-
----
-
-## ✨ Features
-
-- ➕ **Add new tasks**  
-- ✏️ **Edit existing tasks**  
-- 🗑️ **Delete tasks**  
-- ✅ **Mark tasks as completed / incomplete**  
-- 📂 **View completed tasks separately**  
-- 💾 **Persistent storage using `localStorage`**  
-- 🌗 **Light and dark mode support**  
+A **React.js** based smart study planner and task management application to organize your daily tasks, track completed tasks, and handle user authentication.
 
 ---
 
-## 🛠️ Tech Stack
+## 🚀 Features
 
-- ⚛️ **React**  
-- 🌐 **React Router DOM**  
-- 🎨 **Tailwind CSS**  
-- 💾 **Local Storage**  
+- **🔐 Authentication**
+  - Login & Signup functionality
+  - Auth-protected routes
+- **📝 Task Management**
+  - Add new tasks
+  - Edit existing tasks
+  - Delete tasks
+  - Mark tasks as complete/incomplete
+- **📂 Task Views**
+  - Incomplete tasks list
+  - Completed tasks list
+- **👤 User Account**
+  - View user profile information
+- **💾 Local Storage**
+  - Tasks persist in browser local storage
+- **🌙 Dark Mode**
+  - Automatic support for dark and light themes
 
 ---
+
+## 🖥️ Screenshots
+
+> Add your app screenshots here to show StudyMate UI.
+
+---
+
+## ⚙️ Technologies Used
+
+- **Frontend:** React.js, React Router DOM, Tailwind CSS  
+- **Icons:** Lucide React Icons  
+- **State Management:** React useState & useEffect  
+- **Persistence:** Browser Local Storage  
+
+---
+
+## 🛠️ Getting Started
+
+### 1️⃣ Clone the repository
+
+```bash
+git clone https://github.com/yourusername/studymate.git
+cd studymate
