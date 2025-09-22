@@ -1,5 +1,23 @@
 // src/pages/HomePage.js
-export default function HomePage({ tasks = [] }) {
+import { useState, useEffect } from 'react';
+
+export default function HomePage() {
+    const [tasks, setTasks] = useState([]);
+
+    // Load tasks from local storage when the component mounts
+    useEffect(() => {
+        try {
+            const storedTasks = localStorage.getItem('studyTasks');
+            if (storedTasks) {
+                setTasks(JSON.parse(storedTasks));
+            }
+        } catch (error) {
+            console.error("Failed to load or parse tasks from local storage:", error);
+            // In case of an error, default to an empty list
+            setTasks([]);
+        }
+    }, []); // Empty dependency array ensures this runs only once on mount
+
     // Count tasks
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter((t) => t.completed).length;
@@ -7,11 +25,13 @@ export default function HomePage({ tasks = [] }) {
 
     // Decide grade
     let grade = 'No tasks yet';
-    if (percentage === 100) grade = 'A+ (Outstanding 🎉)';
-    else if (percentage >= 80) grade = 'A (Excellent)';
-    else if (percentage >= 60) grade = 'B (Good)';
-    else if (percentage >= 40) grade = 'C (Average)';
-    else if (percentage > 0) grade = 'D (Needs Improvement)';
+    if (totalTasks > 0) {
+        if (percentage === 100) grade = 'A+ (Outstanding 🎉)';
+        else if (percentage >= 80) grade = 'A (Excellent)';
+        else if (percentage >= 60) grade = 'B (Good)';
+        else if (percentage >= 40) grade = 'C (Average)';
+        else grade = 'D (Needs Improvement)';
+    }
 
     return (
         <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 text-center px-4">

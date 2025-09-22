@@ -1,15 +1,14 @@
-// src/components/Login.js
 import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase/firebase';
-import { Link } from 'react-router-dom'; // 👈 import Link for navigation
-import { EyeIcon, EyeOffIcon } from 'lucide-react'; // 👈 icons for show/hide
+import { Link } from 'react-router-dom';
+import { EyeIcon, EyeOffIcon } from 'lucide-react';
 
-export default function Login({ onLogin }) {
+export default function Login() {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false); // 👈 toggle state
+    const [showPassword, setShowPassword] = useState(false);
 
     const validateForm = () => {
         const newErrors = {};
@@ -24,8 +23,8 @@ export default function Login({ onLogin }) {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-        if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+        setFormData(prev => ({ ...prev, [name]: value }));
+        if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
     };
 
     const handleSubmit = async (e) => {
@@ -35,18 +34,32 @@ export default function Login({ onLogin }) {
             setErrors(formErrors);
             return;
         }
+
         setIsLoading(true);
         setErrors({});
         try {
-            const userCredential = await signInWithEmailAndPassword(
+            // ✅ Just sign in - let Firebase auth state listener handle the rest
+            await signInWithEmailAndPassword(
                 auth,
                 formData.email,
                 formData.password
             );
-            console.log('Logged in:', userCredential.user);
-            if (onLogin) onLogin(userCredential.user);
+
+            // ✅ Navigation will be handled by App.js auth state listener
+            // No need to manually set localStorage or call onLogin
+
         } catch (error) {
-            setErrors({ submit: error.message });
+            let errorMessage = "Login failed. Please try again.";
+            if (error.code === 'auth/user-not-found') {
+                errorMessage = "No account found with this email.";
+            } else if (error.code === 'auth/wrong-password') {
+                errorMessage = "Incorrect password.";
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = "Invalid email address.";
+            } else if (error.code === 'auth/too-many-requests') {
+                errorMessage = "Too many failed attempts. Please try again later.";
+            }
+            setErrors({ submit: errorMessage });
         } finally {
             setIsLoading(false);
         }
@@ -62,11 +75,8 @@ export default function Login({ onLogin }) {
                     Login
                 </h2>
 
-                {/* Email input */}
                 <div className="mb-4">
-                    <label htmlFor="email" className="block text-gray-300 font-medium mb-2">
-                        Email:
-                    </label>
+                    <label htmlFor="email" className="block text-gray-300 font-medium mb-2">Email:</label>
                     <input
                         type="email"
                         id="email"
@@ -74,50 +84,30 @@ export default function Login({ onLogin }) {
                         value={formData.email}
                         onChange={handleInputChange}
                         placeholder="Enter your Email"
-                        className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg focus:outline-none focus:ring-2 text-gray-100 placeholder-gray-400 ${errors.email
-                                ? 'border-red-500 focus:ring-red-500'
-                                : 'border-gray-600 focus:ring-blue-500'
-                            }`}
+                        className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg focus:outline-none focus:ring-2 text-gray-100 placeholder-gray-400 ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                     />
-                    {errors.email && (
-                        <p className="mt-1 text-sm text-red-400">{errors.email}</p>
-                    )}
+                    {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email}</p>}
                 </div>
 
-                {/* Password input with toggle */}
                 <div className="mb-6 relative">
-                    <label
-                        htmlFor="password"
-                        className="block text-gray-300 font-medium mb-2"
-                    >
-                        Password:
-                    </label>
+                    <label htmlFor="password" className="block text-gray-300 font-medium mb-2">Password:</label>
                     <input
-                        type={showPassword ? 'text' : 'password'} // 👈 toggle type
+                        type={showPassword ? 'text' : 'password'}
                         id="password"
                         name="password"
                         value={formData.password}
                         onChange={handleInputChange}
                         placeholder="Enter your Password"
-                        className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg focus:outline-none focus:ring-2 text-gray-100 placeholder-gray-400 ${errors.password
-                                ? 'border-red-500 focus:ring-red-500'
-                                : 'border-gray-600 focus:ring-blue-500'
-                            }`}
+                        className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg focus:outline-none focus:ring-2 text-gray-100 placeholder-gray-400 ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                     />
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-10 text-gray-400 hover:text-gray-200"
                     >
-                        {showPassword ? (
-                            <EyeOffIcon className="w-5 h-5" />
-                        ) : (
-                            <EyeIcon className="w-5 h-5" />
-                        )}
+                        {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
                     </button>
-                    {errors.password && (
-                        <p className="mt-1 text-sm text-red-400">{errors.password}</p>
-                    )}
+                    {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password}</p>}
                 </div>
 
                 {errors.submit && (
@@ -129,17 +119,14 @@ export default function Login({ onLogin }) {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isLoading ? 'Signing in...' : 'Login'}
                 </button>
 
-                {/* 👇 Add signup link */}
                 <p className="mt-4 text-center text-gray-400 text-sm">
-                    Don’t have an account?{' '}
-                    <Link to="/signup" className="text-blue-400 hover:underline">
-                        Sign Up
-                    </Link>
+                    Don't have an account?{' '}
+                    <Link to="/signup" className="text-blue-400 hover:underline">Sign Up</Link>
                 </p>
             </form>
         </div>

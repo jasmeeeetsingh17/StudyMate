@@ -42,18 +42,6 @@ export default function Header({ isAuthenticated, user, onLogout }) {
                         </NavLink>
 
                         <NavLink
-                            to="/tasks"
-                            className={({ isActive }) =>
-                                `relative px-4 py-2 rounded-lg font-medium transition-all duration-300 ${isActive
-                                    ? 'text-white bg-blue-600/20 shadow-lg shadow-blue-500/25'
-                                    : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
-                                }`
-                            }
-                        >
-                            All Tasks
-                        </NavLink>
-
-                        <NavLink
                             to="/task-form"
                             className={({ isActive }) =>
                                 `relative px-4 py-2 rounded-lg font-medium transition-all duration-300 ${isActive
@@ -66,7 +54,7 @@ export default function Header({ isAuthenticated, user, onLogout }) {
                         </NavLink>
 
                         <NavLink
-                            to="/completed"
+                            to="/tasks"
                             className={({ isActive }) =>
                                 `relative px-4 py-2 rounded-lg font-medium transition-all duration-300 ${isActive
                                     ? 'text-white bg-blue-600/20 shadow-lg shadow-blue-500/25'
@@ -74,8 +62,9 @@ export default function Header({ isAuthenticated, user, onLogout }) {
                                 }`
                             }
                         >
-                            Completed
+                            All Tasks
                         </NavLink>
+
                     </div>
 
                     {/* Desktop Auth Section */}
@@ -150,19 +139,6 @@ export default function Header({ isAuthenticated, user, onLogout }) {
                             </NavLink>
 
                             <NavLink
-                                to="/tasks"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className={({ isActive }) =>
-                                    `px-4 py-3 rounded-lg font-medium transition-all duration-300 ${isActive
-                                        ? 'text-white bg-blue-600/20 shadow-lg shadow-blue-500/25'
-                                        : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
-                                    }`
-                                }
-                            >
-                                All Tasks
-                            </NavLink>
-
-                            <NavLink
                                 to="/task-form"
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className={({ isActive }) =>
@@ -176,7 +152,7 @@ export default function Header({ isAuthenticated, user, onLogout }) {
                             </NavLink>
 
                             <NavLink
-                                to="/completed"
+                                to="/tasks"
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className={({ isActive }) =>
                                     `px-4 py-3 rounded-lg font-medium transition-all duration-300 ${isActive
@@ -185,7 +161,7 @@ export default function Header({ isAuthenticated, user, onLogout }) {
                                     }`
                                 }
                             >
-                                Completed
+                                All Tasks
                             </NavLink>
 
                             <div className="border-t border-gray-700/50 pt-4 mt-4">

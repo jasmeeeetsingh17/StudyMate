@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Calendar, Flag, BookOpen, FileText, Save, Plus } from "lucide-react";
+import toast, { Toaster } from 'react-hot-toast';
 
 // Mock navigate function for demo
 const useNavigate = () => {
-    return () => console.log('Navigate to /tasks');
+    return (path) => console.log(`Navigating to ${path}`);
 };
 
 export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
@@ -18,51 +19,46 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
 
     useEffect(() => {
         if (existingTask) {
-            setSubject(existingTask.subject);
-            setTopic(existingTask.topic);
-            setDueDate(existingTask.dueDate);
-            setPriority(existingTask.priority);
-            setNotes(existingTask.notes);
+            setSubject(existingTask.subject || "");
+            setTopic(existingTask.topic || "");
+            setDueDate(existingTask.dueDate || "");
+            setPriority(existingTask.priority || "Medium");
+            setNotes(existingTask.notes || "");
+        } else {
+            // Ensure form is reset when switching from edit to create mode
+            resetForm();
         }
     }, [existingTask]);
 
+    // NEW: Function to reset all form fields and errors
+    const resetForm = () => {
+        setSubject("");
+        setTopic("");
+        setDueDate("");
+        setPriority("Medium");
+        setNotes("");
+        setErrors({});
+    };
+
     const validateForm = () => {
         const newErrors = {};
-
-        if (!subject.trim()) {
-            newErrors.subject = 'Subject is required';
-        }
-
-        if (!topic.trim()) {
-            newErrors.topic = 'Topic is required';
-        }
-
+        if (!subject.trim()) newErrors.subject = 'Subject is required';
+        if (!topic.trim()) newErrors.topic = 'Topic is required';
         return newErrors;
     };
 
     const handleInputChange = (field, value) => {
         switch (field) {
-            case 'subject':
-                setSubject(value);
-                break;
-            case 'topic':
-                setTopic(value);
-                break;
-            case 'dueDate':
-                setDueDate(value);
-                break;
-            case 'priority':
-                setPriority(value);
-                break;
-            case 'notes':
-                setNotes(value);
-                break;
-            default:
-                console.warn(`Unhandled field: ${field}`);
+            case 'subject': setSubject(value); break;
+            case 'topic': setTopic(value); break;
+            case 'dueDate': setDueDate(value); break;
+            case 'priority': setPriority(value); break;
+            case 'notes': setNotes(value); break;
+            default: console.warn(`Unhandled field: ${field}`);
         }
-
-        // Clear error for this field when user types
-        setErrors(prev => ({ ...prev, [field]: '' }));
+        if (errors[field]) {
+            setErrors(prev => ({ ...prev, [field]: '' }));
+        }
     };
 
     const handleSubmit = (e) => {
@@ -71,18 +67,46 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
         const formErrors = validateForm();
         if (Object.keys(formErrors).length > 0) {
             setErrors(formErrors);
+            toast.error('Please fill in all required fields.');
             return;
         }
 
         const taskData = { subject, topic, dueDate, priority, notes };
 
-        if (existingTask) {
-            onUpdateTask?.({ ...taskData, id: existingTask.id, completed: existingTask.completed });
-        } else {
-            onAddTask?.(taskData);
-        }
+        try {
+            const allTasks = JSON.parse(localStorage.getItem('studyTasks')) || [];
 
-        navigate();
+            if (existingTask) {
+                // UPDATE existing task
+                const updatedTask = { ...taskData, id: existingTask.id, completed: existingTask.completed || false };
+                const taskIndex = allTasks.findIndex(task => task.id === existingTask.id);
+
+                if (taskIndex > -1) {
+                    allTasks[taskIndex] = updatedTask;
+                } else {
+                    allTasks.push(updatedTask);
+                }
+
+                localStorage.setItem('studyTasks', JSON.stringify(allTasks));
+                toast.success('Task updated successfully!');
+                onUpdateTask?.(updatedTask);
+                navigate('/tasks'); // Navigate away after updating
+
+            } else {
+                // ADD new task
+                const newTask = { ...taskData, id: Date.now(), completed: false };
+                allTasks.push(newTask);
+
+                localStorage.setItem('studyTasks', JSON.stringify(allTasks));
+                toast.success('Task created and saved!');
+                onAddTask?.(newTask);
+                resetForm(); // UPDATED: Reset form fields after successful creation
+            }
+
+        } catch (error) {
+            console.error("Failed to save tasks to local storage:", error);
+            toast.error('Could not save task. See console for details.');
+        }
     };
 
     const getPriorityColor = (priority) => {
@@ -96,6 +120,17 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 p-6 flex items-center justify-center">
+            {/* Toaster component for displaying notifications */}
+            <Toaster
+                position="top-center"
+                reverseOrder={false}
+                toastOptions={{
+                    style: {
+                        background: '#334155', // slate-700
+                        color: '#f1f5f9',     // slate-100
+                    },
+                }}
+            />
             <div className="bg-gray-800/90 backdrop-blur-lg border border-gray-700/50 rounded-3xl shadow-2xl shadow-black/50 p-8 w-full max-w-4xl">
                 {/* Header */}
                 <div className="text-center mb-8">
@@ -215,7 +250,7 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
                     <div className="flex flex-col sm:flex-row gap-4">
                         <button
                             type="button"
-                            onClick={() => navigate()}
+                            onClick={() => navigate('/tasks')}
                             className="flex-1 px-6 py-3 bg-gray-700/50 text-gray-300 font-medium rounded-xl border border-gray-600 hover:bg-gray-600/50 hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
                         >
                             Cancel
