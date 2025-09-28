@@ -42,18 +42,6 @@ export default function Header({ isAuthenticated, user, onLogout }) {
                         </NavLink>
 
                         <NavLink
-                            to="/task-form"
-                            className={({ isActive }) =>
-                                `relative px-4 py-2 rounded-lg font-medium transition-all duration-300 ${isActive
-                                    ? 'text-white bg-blue-600/20 shadow-lg shadow-blue-500/25'
-                                    : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
-                                }`
-                            }
-                        >
-                            Create Task
-                        </NavLink>
-
-                        <NavLink
                             to="/tasks"
                             className={({ isActive }) =>
                                 `relative px-4 py-2 rounded-lg font-medium transition-all duration-300 ${isActive
@@ -136,19 +124,6 @@ export default function Header({ isAuthenticated, user, onLogout }) {
                                 }
                             >
                                 Home
-                            </NavLink>
-
-                            <NavLink
-                                to="/task-form"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className={({ isActive }) =>
-                                    `px-4 py-3 rounded-lg font-medium transition-all duration-300 ${isActive
-                                        ? 'text-white bg-blue-600/20 shadow-lg shadow-blue-500/25'
-                                        : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
-                                    }`
-                                }
-                            >
-                                Create Task
                             </NavLink>
 
                             <NavLink

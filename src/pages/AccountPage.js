@@ -1,15 +1,45 @@
-import { User, Mail } from "lucide-react";
+import { useEffect, useState } from "react";
+import { User, Mail, LogOut } from "lucide-react";
+import { auth } from "../firebase/firebase";
+import { useNavigate } from "react-router-dom";
 
-export default function AccountPage({ user = { name: 'John Doe', email: 'john@example.com' } }) {
+export default function AccountPage() {
+    const [user, setUser] = useState({ name: "", email: "" });
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+            if (firebaseUser) {
+                setUser({
+                    name: firebaseUser.displayName || "Guest User",
+                    email: firebaseUser.email || "No email provided"
+                });
+            } else {
+                setUser({ name: "Guest User", email: "No email provided" });
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const handleLogout = async () => {
+        try {
+            await auth.signOut();
+            navigate("/login"); // redirect to login page after logout
+        } catch (error) {
+            console.error("Logout Error:", error);
+        }
+    };
+
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 flex items-center justify-center p-6">
-            <div className="bg-gray-800/90 backdrop-blur-lg border border-gray-700/50 shadow-2xl shadow-black/50 rounded-3xl p-8 w-full max-w-2xl">
-                {/* Header Section */}
+            <div className="bg-gray-800/90 backdrop-blur-lg border border-gray-700/50 shadow-2xl shadow-black/50 rounded-3xl p-8 w-full max-w-2xl relative">
+                {/* Header */}
                 <div className="text-center mb-8">
                     <div className="relative mx-auto mb-6">
                         <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-2xl">
                             <span className="text-white text-2xl font-bold">
-                                {(user?.name || 'U').charAt(0).toUpperCase()}
+                                {user.name.charAt(0).toUpperCase()}
                             </span>
                         </div>
                         <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-full border-4 border-gray-800 flex items-center justify-center">
@@ -25,9 +55,8 @@ export default function AccountPage({ user = { name: 'John Doe', email: 'john@ex
                     </p>
                 </div>
 
-                {/* Profile Information Cards */}
+                {/* Profile Info */}
                 <div className="space-y-4 mb-8">
-                    {/* Personal Information Card */}
                     <div className="bg-gray-700/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-600/50">
                         <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
                             <User size={20} className="text-blue-400" />
@@ -46,7 +75,7 @@ export default function AccountPage({ user = { name: 'John Doe', email: 'john@ex
                                     </div>
                                 </div>
                                 <p className="text-gray-100 font-semibold">
-                                    {user?.name || 'Guest User'}
+                                    {user.name}
                                 </p>
                             </div>
 
@@ -61,24 +90,25 @@ export default function AccountPage({ user = { name: 'John Doe', email: 'john@ex
                                     </div>
                                 </div>
                                 <p className="text-gray-100 font-semibold">
-                                    {user?.email || 'No email provided'}
+                                    {user.email}
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Action Buttons */}
-                {/* <div className="flex flex-col sm:flex-row gap-4">
+                {/* Logout Button */}
+                <div className="flex justify-center">
                     <button
-                        onClick={onLogout}
-                        className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:from-red-700 hover:to-red-800 transition-transform transform hover:scale-105 shadow-lg hover:shadow-xl"
                     >
+                        <LogOut size={18} />
                         Logout
                     </button>
-                </div> */}
+                </div>
 
-                {/* Visual Enhancement */}
+                {/* Visual Enhancements */}
                 <div className="absolute -top-1 -right-1 w-32 h-32 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
                 <div className="absolute -bottom-1 -left-1 w-32 h-32 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl"></div>
             </div>

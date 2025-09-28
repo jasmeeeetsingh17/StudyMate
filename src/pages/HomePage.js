@@ -1,85 +1,217 @@
 // src/pages/HomePage.js
-import { useState, useEffect } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Plus, Clock, AlertTriangle, TrendingUp, CheckCircle2 } from 'lucide-react';
 
-export default function HomePage() {
-    const [tasks, setTasks] = useState([]);
+const HomePage = ({
+    tasks,
+    completedTasks,
+    incompleteTasks,
+    taskStats,
+    isLoading,
+    user
+}) => {
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good morning';
+        if (hour < 18) return 'Good afternoon';
+        return 'Good evening';
+    };
 
-    // Load tasks from local storage when the component mounts
-    useEffect(() => {
-        try {
-            const storedTasks = localStorage.getItem('studyTasks');
-            if (storedTasks) {
-                setTasks(JSON.parse(storedTasks));
-            }
-        } catch (error) {
-            console.error("Failed to load or parse tasks from local storage:", error);
-            // In case of an error, default to an empty list
-            setTasks([]);
-        }
-    }, []); // Empty dependency array ensures this runs only once on mount
+    // 🔹 NEW: pick the single task closest to due date
+    const recentTasks = tasks
+        .filter(t => !t.completed && t.dueDate) // only incomplete tasks with due date
+        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)) // soonest due first
+        .slice(0, 1); // take only 1
 
-    // Count tasks
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter((t) => t.completed).length;
-    const percentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+    const urgentTasks = incompleteTasks
+        .filter(task => {
+            if (!task.dueDate) return false;
+            const dueDate = new Date(task.dueDate);
+            const now = new Date();
+            const timeDiff = dueDate.getTime() - now.getTime();
+            const hoursDiff = timeDiff / (1000 * 3600);
+            return hoursDiff <= 24 && hoursDiff > 0;
+        })
+        .slice(0, 3);
 
-    // Decide grade
-    let grade = 'No tasks yet';
-    if (totalTasks > 0) {
-        if (percentage === 100) grade = 'A+ (Outstanding 🎉)';
-        else if (percentage >= 80) grade = 'A (Excellent)';
-        else if (percentage >= 60) grade = 'B (Good)';
-        else if (percentage >= 40) grade = 'C (Average)';
-        else grade = 'D (Needs Improvement)';
+    if (isLoading) {
+        return (
+            <div className="space-y-6">
+                <div className="animate-pulse">
+                    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[...Array(3)].map((_, i) => (
+                            <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 text-center px-4">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-800 dark:text-gray-100 mb-6">
-                Welcome to{' '}
-                <span className="text-blue-600 dark:text-blue-400">Study Mate</span>
-            </h1>
-            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mb-10">
-                Organize your tasks, track your progress, and achieve your goals more efficiently.
-            </p>
+        <div className="space-y-8">
+            {/* Welcome Section */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl p-8 shadow-lg">
+                <h1 className="text-3xl font-bold mb-2">
+                    {getGreeting()}, {user?.displayName || user?.username || 'Student'}!
+                </h1>
+                <p className="text-blue-100 text-lg">
+                    {taskStats.incomplete > 0
+                        ? `You have ${taskStats.incomplete} task${taskStats.incomplete !== 1 ? 's' : ''} to complete`
+                        : "All caught up! Great work! 🎉"
+                    }
+                </p>
+            </div>
 
-            {/* Analytics Card */}
-            <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 w-full max-w-lg">
-                <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">
-                    Your Task Analytics
-                </h2>
-                <div className="grid grid-cols-2 gap-4 text-gray-700 dark:text-gray-300">
-                    <div className="p-4 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                        <p className="text-sm">Total Tasks</p>
-                        <p className="text-3xl font-bold">{totalTasks}</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-green-100 dark:bg-green-900/30">
-                        <p className="text-sm">Completed</p>
-                        <p className="text-3xl font-bold">{completedTasks}</p>
-                    </div>
-                </div>
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <StatCard
+                    title="Total Tasks"
+                    value={taskStats.total}
+                    icon={<CheckCircle2 className="h-6 w-6" />}
+                    color="bg-blue-500"
+                />
+                <StatCard
+                    title="Completed"
+                    value={taskStats.completed}
+                    icon={<TrendingUp className="h-6 w-6" />}
+                    color="bg-green-500"
+                />
+                <StatCard
+                    title="In Progress"
+                    value={taskStats.incomplete}
+                    icon={<Clock className="h-6 w-6" />}
+                    color="bg-yellow-500"
+                />
+            </div>
 
-                {/* Progress Bar */}
-                <div className="mt-6">
-                    <p className="text-sm mb-2">Completion Rate</p>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
-                        <div
-                            className="bg-gradient-to-r from-green-400 to-green-600 h-4 rounded-full transition-all duration-500"
-                            style={{ width: `${percentage}%` }}
-                        ></div>
-                    </div>
-                    <p className="mt-2 text-sm">
-                        {percentage.toFixed(0)}% completed
-                    </p>
-                </div>
+            {/* Quick Actions */}
+            <div className="flex flex-wrap gap-4">
+                <Link
+                    to="/add-task"
+                    className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+                >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Add New Task
+                </Link>
+                <Link
+                    to="/stats"
+                    className="inline-flex items-center px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
+                >
+                    <TrendingUp className="h-5 w-5 mr-2" />
+                    View Progress
+                </Link>
+            </div>
 
-                {/* Grade */}
-                <div className="mt-6">
-                    <p className="text-lg font-medium">
-                        Your Grade: <span className="font-bold text-blue-500">{grade}</span>
-                    </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Urgent Tasks */}
+                {urgentTasks.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                        <div className="flex items-center mb-4">
+                            <AlertTriangle className="h-5 w-5 text-orange-500 mr-2" />
+                            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                Due Soon
+                            </h2>
+                        </div>
+                        <div className="space-y-3">
+                            {urgentTasks.map(task => (
+                                <TaskPreview key={task.id} task={task} urgent />
+                            ))}
+                        </div>
+                        <Link
+                            to="/tasks"
+                            className="inline-block mt-4 text-blue-600 hover:text-blue-800 font-medium text-sm"
+                        >
+                            View all tasks →
+                        </Link>
+                    </div>
+                )}
+
+                {/* Recent Activity (now just 1 nearest-due task) */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                        Recent Activity
+                    </h2>
+                    {recentTasks.length > 0 ? (
+                        <div className="space-y-3">
+                            {recentTasks.map(task => (
+                                <TaskPreview key={task.id} task={task} />
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                            No tasks yet. Create your first task to get started!
+                        </p>
+                    )}
+                    <Link
+                        to="/tasks"
+                        className="inline-block mt-4 text-blue-600 hover:text-blue-800 font-medium text-sm"
+                    >
+                        View all tasks →
+                    </Link>
                 </div>
             </div>
-        </main>
+        </div>
     );
-}
+};
+
+const StatCard = ({ title, value, icon, color }) => (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between">
+            <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+            </div>
+            <div className={`${color} text-white p-3 rounded-lg`}>
+                {icon}
+            </div>
+        </div>
+    </div>
+);
+
+const TaskPreview = ({ task, urgent = false }) => {
+    const formatDueDate = (dueDate) => {
+        if (!dueDate) return null;
+        const date = new Date(dueDate);
+        const now = new Date();
+        const diffTime = date.getTime() - now.getTime();
+        const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+
+        if (diffHours < 1) return "Due now";
+        if (diffHours < 24) return `Due in ${diffHours}h`;
+        const diffDays = Math.ceil(diffHours / 24);
+        return `Due in ${diffDays}d`;
+    };
+
+    return (
+        <div className={`p-3 rounded-lg border ${urgent
+            ? 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20'
+            : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700/50'
+            }`}>
+            <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                    <p className={`font-medium truncate ${task.completed ? 'line-through text-gray-500' : 'text-gray-900 dark:text-gray-100'
+                        }`}>
+                        {task.title || task.subject || task.topic || 'Untitled Task'}
+                    </p>
+                    {task.category && (
+                        <span className="inline-block mt-1 px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">
+                            {task.category}
+                        </span>
+                    )}
+                </div>
+                {task.dueDate && !task.completed && (
+                    <span className={`text-xs font-medium ${urgent ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500'
+                        }`}>
+                        {formatDueDate(task.dueDate)}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
+export default HomePage;

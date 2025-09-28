@@ -1,189 +1,164 @@
 // src/App.js
-import { useState, useEffect } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase/firebase";
+import { Suspense, lazy } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { ErrorBoundary } from "react-error-boundary";
 
+import { useAuth } from "./hooks/useAuth";
+import { useTasks } from "./hooks/useTasks";
 import Header from "./components/Header";
-import Login from "./components/Login";
-import SignUp from "./components/SignUp";
-import HomePage from "./pages/HomePage";
-import TaskList from "./components/TaskList";
-import TaskForm from "./components/TaskForm";
-import AccountPage from "./pages/AccountPage";
+import LoadingScreen from "./components/LoadingScreen";
+import ErrorFallback from "./components/ErrorFallback";
+
+// Lazy load components for better performance
+const Login = lazy(() => import("./components/Login"));
+const SignUp = lazy(() => import("./components/SignUp"));
+const HomePage = lazy(() => import("./pages/HomePage"));
+const TaskList = lazy(() => import("./components/TaskList"));
+const TaskForm = lazy(() => import("./components/TaskForm"));
+const AccountPage = lazy(() => import("./pages/AccountPage"));
+const StatsPage = lazy(() => import("./pages/StatsPage"));
 
 function App() {
-  const [tasks, setTasks] = useState([]);
+  const { isAuthenticated, user, handleLogout, isLoading: authLoading, error: authError } = useAuth();
+  const {
+    tasks,
+    taskToEdit,
+    isLoading: tasksLoading,
+    error: tasksError,
+    handleAddTask,
+    handleDeleteTask,
+    handleUpdateTask,
+    handleToggleComplete,
+    handleSetTaskToEdit,
+    incompleteTasks,
+    completedTasks,
+    taskStats,
+  } = useTasks(user);
 
-  const [taskToEdit, setTaskToEdit] = useState(null);
+  // Show loading screen while checking auth
+  if (authLoading) {
+    return <LoadingScreen message="Loading..." />;
+  }
 
-  // ✅ Start with null to indicate "checking auth state"
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const [user, setUser] = useState(null);
-
-  // ✅ Load tasks for the authenticated user
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      const userTasksKey = `tasks_${user.uid}`;
-      const storedTasks = localStorage.getItem(userTasksKey);
-      if (storedTasks) {
-        setTasks(JSON.parse(storedTasks));
-      }
-    }
-  }, [isAuthenticated, user]);
-
-  // ✅ Save tasks to localStorage with user-specific key
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      const userTasksKey = `tasks_${user.uid}`;
-      localStorage.setItem(userTasksKey, JSON.stringify(tasks));
-    }
-  }, [tasks, isAuthenticated, user]);
-
-  // ✅ Firebase auth state listener - this handles page refresh and localStorage sync
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        // User is signed in - get additional data from localStorage or create new
-        const storedUser = JSON.parse(localStorage.getItem("studyMateUser"));
-
-        const userData = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName || storedUser?.username || storedUser?.displayName || null,
-          username: storedUser?.username || firebaseUser.displayName || null,
-          // Add any other user data you want to persist
-          profilePicture: storedUser?.profilePicture || null,
-          preferences: storedUser?.preferences || {},
-          createdAt: storedUser?.createdAt || new Date().toISOString(),
-        };
-
-        // Always sync with localStorage
-        localStorage.setItem("studyMateUser", JSON.stringify(userData));
-
-        setUser(userData);
-        setIsAuthenticated(true);
-      } else {
-        // User is signed out - clear everything
-        localStorage.removeItem("studyMateUser");
-        localStorage.removeItem("tasks"); // Clear tasks on logout for privacy
-        setTasks([]); // Clear tasks from state
-        setUser(null);
-        setIsAuthenticated(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const handleAddTask = (newTask) => {
-    setTasks((prev) => [
-      ...prev,
-      { id: Date.now(), ...newTask, completed: false },
-    ]);
-  };
-
-  const handleDeleteTask = (id) => {
-    setTasks((prev) => prev.filter((task) => task.id !== id));
-  };
-
-  const handleUpdateTask = (updatedTask) => {
-    setTasks(tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)));
-    setTaskToEdit(null);
-  };
-
-  const handleToggleComplete = (id) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
-  };
-
-  const handleSetTaskToEdit = (task) => setTaskToEdit(task);
-
-  const handleLogin = (userData) => {
-    // This is handled by the auth state listener now
-    // But keeping for any custom logic you might need
-    console.log("Login successful:", userData);
-  };
-
-  const handleLogout = async () => {
-    try {
-      // Clear tasks before signing out
-      setTasks([]);
-      await auth.signOut(); // This will trigger the auth state listener
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
-
-  const incompleteTasks = tasks.filter((task) => !task.completed);
-
-  // ✅ Show loading screen while checking auth (null means checking)
-  if (isAuthenticated === null) {
+  // Show auth error if any
+  if (authError) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Checking authentication...</p>
-        </div>
-      </div>
+      <ErrorFallback
+        error={authError}
+        resetError={() => window.location.reload()}
+      />
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <Router>
-        {isAuthenticated && (
-          <Header isAuthenticated={isAuthenticated} user={user} onLogout={handleLogout} />
-        )}
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+        <Router>
+          {isAuthenticated && (
+            <Header
+              isAuthenticated={isAuthenticated}
+              user={user}
+              onLogout={handleLogout}
+              taskStats={taskStats}
+            />
+          )}
 
-        <main className="max-w-5xl mx-auto p-4">
-          <Routes>
-            {!isAuthenticated ? (
-              <>
-                <Route path="/login" element={<Login onLogin={handleLogin} />} />
-                <Route path="/signup" element={<SignUp onLogin={handleLogin} />} />
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </>
-            ) : (
-              <>
-                <Route path="/" element={<HomePage tasks={tasks} />} />
-                <Route
-                  path="/tasks"
-                  element={
-                    <TaskList
-                      tasks={incompleteTasks}
-                      onDeleteTask={handleDeleteTask}
-                      onEditTask={handleSetTaskToEdit}
-                      onToggleComplete={handleToggleComplete}
-                    />
-                  }
-                />
-                <Route
-                  path="/task-form"
-                  element={
-                    <TaskForm
-                      onAddTask={handleAddTask}
-                      onUpdateTask={handleUpdateTask}
-                      existingTask={taskToEdit}
-                    />
-                  }
-                />
-                <Route path="/account" element={<AccountPage user={user} />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </>
+          <main className="max-w-6xl mx-auto px-4 py-6">
+            {tasksError && (
+              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 text-red-700 rounded-r-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium">Something went wrong with your tasks</p>
+                    <p className="text-sm">{tasksError.message}</p>
+                  </div>
+                </div>
+              </div>
             )}
-          </Routes>
-        </main>
-      </Router>
-    </div>
+
+            <Suspense fallback={<LoadingScreen message="Loading page..." />}>
+              <Routes>
+                {!isAuthenticated ? (
+                  <>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<SignUp />} />
+                    <Route path="*" element={<Navigate to="/login" replace />} />
+                  </>
+                ) : (
+                  <>
+                    <Route
+                      path="/"
+                      element={
+                        <HomePage
+                          tasks={tasks}
+                          completedTasks={completedTasks}
+                          incompleteTasks={incompleteTasks}
+                          taskStats={taskStats}
+                          isLoading={tasksLoading}
+                          user={user}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/tasks"
+                      element={
+                        <TaskList
+                          tasks={tasks}
+                          onDeleteTask={handleDeleteTask}
+                          onEditTask={handleSetTaskToEdit}
+                          onToggleComplete={handleToggleComplete}
+                          isLoading={tasksLoading}
+                        />
+                      }
+                    />
+
+                    <Route
+                      path="/add-task"
+                      element={
+                        <TaskForm
+                          onAddTask={handleAddTask}
+                          onUpdateTask={handleUpdateTask}
+                          existingTask={taskToEdit}
+                          isLoading={tasksLoading}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/edit-task/:id"
+                      element={
+                        <TaskForm
+                          onAddTask={handleAddTask}
+                          onUpdateTask={handleUpdateTask}
+                          existingTask={taskToEdit}
+                          isLoading={tasksLoading}
+                          isEditing={true}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/stats"
+                      element={
+                        <StatsPage
+                          tasks={tasks}
+                          completedTasks={completedTasks}
+                          taskStats={taskStats}
+                        />
+                      }
+                    />
+                    <Route path="/account" element={<AccountPage user={user} />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </>
+                )}
+              </Routes>
+            </Suspense>
+          </main>
+        </Router>
+      </div>
+    </ErrorBoundary>
   );
 }
 
