@@ -1,13 +1,10 @@
+// src/components/TaskForm.js - FIXED VERSION
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Calendar, Flag, BookOpen, FileText, Save, Plus } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 
-// Mock navigate function for demo
-const useNavigate = () => {
-    return (path) => console.log(`Navigating to ${path}`);
-};
-
-export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
+export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEditing = false }) {
     const [subject, setSubject] = useState("");
     const [topic, setTopic] = useState("");
     const [dueDate, setDueDate] = useState("");
@@ -16,21 +13,44 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
     const [errors, setErrors] = useState({});
 
     const navigate = useNavigate();
+    const { id } = useParams();
 
+    // Load task data when editing
     useEffect(() => {
-        if (existingTask) {
+        if (isEditing && id) {
+            console.log('Edit mode: Loading task with ID:', id);
+
+            const storedUser = JSON.parse(localStorage.getItem('studyMateUser'));
+            if (storedUser?.uid) {
+                const userTasksKey = `tasks_${storedUser.uid}`;
+                const storedTasks = JSON.parse(localStorage.getItem(userTasksKey) || '[]');
+                console.log('All tasks:', storedTasks);
+
+                const taskToEdit = storedTasks.find(t => t.id === parseInt(id));
+                console.log('Found task to edit:', taskToEdit);
+
+                if (taskToEdit) {
+                    setSubject(taskToEdit.subject || "");
+                    setTopic(taskToEdit.topic || "");
+                    setDueDate(taskToEdit.dueDate || "");
+                    setPriority(taskToEdit.priority || "Medium");
+                    setNotes(taskToEdit.notes || "");
+                } else {
+                    toast.error('Task not found');
+                }
+            }
+        } else if (existingTask) {
+            console.log('Loading existing task:', existingTask);
             setSubject(existingTask.subject || "");
             setTopic(existingTask.topic || "");
             setDueDate(existingTask.dueDate || "");
             setPriority(existingTask.priority || "Medium");
             setNotes(existingTask.notes || "");
         } else {
-            // Ensure form is reset when switching from edit to create mode
             resetForm();
         }
-    }, [existingTask]);
+    }, [existingTask, isEditing, id]);
 
-    // NEW: Function to reset all form fields and errors
     const resetForm = () => {
         setSubject("");
         setTopic("");
@@ -71,41 +91,40 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
             return;
         }
 
-        const taskData = { subject, topic, dueDate, priority, notes };
+        const taskData = {
+            subject,
+            topic,
+            dueDate,
+            priority,
+            notes,
+            category: subject,
+            title: `${subject} - ${topic}`,
+        };
 
-        try {
-            const allTasks = JSON.parse(localStorage.getItem('studyTasks')) || [];
+        console.log('Submitting task:', taskData);
 
-            if (existingTask) {
-                // UPDATE existing task
-                const updatedTask = { ...taskData, id: existingTask.id, completed: existingTask.completed || false };
-                const taskIndex = allTasks.findIndex(task => task.id === existingTask.id);
+        if (isEditing && id) {
+            // UPDATE existing task
+            const updatedTask = {
+                ...taskData,
+                id: parseInt(id),
+            };
 
-                if (taskIndex > -1) {
-                    allTasks[taskIndex] = updatedTask;
-                } else {
-                    allTasks.push(updatedTask);
-                }
+            console.log('Updating task:', updatedTask);
+            onUpdateTask?.(updatedTask);
+            toast.success('Task updated successfully!');
+            navigate('/tasks');
+        } else {
+            // ADD new task
+            console.log('Creating new task:', taskData);
+            onAddTask?.(taskData);
+            toast.success('Task created successfully!');
+            resetForm();
 
-                localStorage.setItem('studyTasks', JSON.stringify(allTasks));
-                toast.success('Task updated successfully!');
-                onUpdateTask?.(updatedTask);
-                navigate('/tasks'); // Navigate away after updating
-
-            } else {
-                // ADD new task
-                const newTask = { ...taskData, id: Date.now(), completed: false };
-                allTasks.push(newTask);
-
-                localStorage.setItem('studyTasks', JSON.stringify(allTasks));
-                toast.success('Task created and saved!');
-                onAddTask?.(newTask);
-                resetForm(); // UPDATED: Reset form fields after successful creation
-            }
-
-        } catch (error) {
-            console.error("Failed to save tasks to local storage:", error);
-            toast.error('Could not save task. See console for details.');
+            // Navigate to tasks list after a short delay
+            setTimeout(() => {
+                navigate('/tasks');
+            }, 500);
         }
     };
 
@@ -120,28 +139,27 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 p-6 flex items-center justify-center">
-            {/* Toaster component for displaying notifications */}
             <Toaster
                 position="top-center"
                 reverseOrder={false}
                 toastOptions={{
                     style: {
-                        background: '#334155', // slate-700
-                        color: '#f1f5f9',     // slate-100
+                        background: '#334155',
+                        color: '#f1f5f9',
                     },
                 }}
             />
-            <div className="bg-gray-800/90 backdrop-blur-lg border border-gray-700/50 rounded-3xl shadow-2xl shadow-black/50 p-8 w-full max-w-4xl">
+            <div className="bg-gray-800/90 backdrop-blur-lg border border-gray-700/50 rounded-3xl shadow-2xl shadow-black/50 p-8 w-full max-w-4xl relative">
                 {/* Header */}
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        {existingTask ? <Save className="text-white" size={24} /> : <Plus className="text-white" size={24} />}
+                        {isEditing ? <Save className="text-white" size={24} /> : <Plus className="text-white" size={24} />}
                     </div>
                     <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-                        {existingTask ? "Edit Task" : "Create New Task"}
+                        {isEditing ? "Edit Task" : "Create New Task"}
                     </h2>
                     <p className="text-gray-400">
-                        {existingTask ? "Update your study task details" : "Add a new study task to your schedule"}
+                        {isEditing ? "Update your study task details" : "Add a new study task to your schedule"}
                     </p>
                 </div>
 
@@ -151,7 +169,7 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
                         <div className="space-y-2">
                             <label className="flex items-center gap-2 text-gray-300 font-medium">
                                 <BookOpen size={16} />
-                                Subject
+                                Subject <span className="text-red-400">*</span>
                             </label>
                             <input
                                 value={subject}
@@ -174,7 +192,7 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
                         <div className="space-y-2">
                             <label className="flex items-center gap-2 text-gray-300 font-medium">
                                 <FileText size={16} />
-                                Topic
+                                Topic <span className="text-red-400">*</span>
                             </label>
                             <input
                                 value={topic}
@@ -259,7 +277,7 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask }) {
                             type="submit"
                             className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                         >
-                            {existingTask ? (
+                            {isEditing ? (
                                 <>
                                     <Save size={18} />
                                     Save Changes

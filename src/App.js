@@ -1,5 +1,5 @@
-// src/App.js
-import { Suspense, lazy } from "react";
+// src/App.js - FIXED VERSION with proper localStorage integration
+import { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
 
@@ -8,6 +8,9 @@ import { useTasks } from "./hooks/useTasks";
 import Header from "./components/Header";
 import LoadingScreen from "./components/LoadingScreen";
 import ErrorFallback from "./components/ErrorFallback";
+
+// Import debug utility (remove in production)
+import StorageDebugger from "./utils/storageDebug";
 
 // Lazy load components for better performance
 const Login = lazy(() => import("./components/Login"));
@@ -34,6 +37,18 @@ function App() {
     completedTasks,
     taskStats,
   } = useTasks(user);
+
+  // Debug: Log when user or tasks change (remove in production)
+  useEffect(() => {
+    console.log('App state changed:');
+    console.log('  - isAuthenticated:', isAuthenticated);
+    console.log('  - user:', user);
+    console.log('  - tasks count:', tasks.length);
+
+    // Make debugger available in console
+    window.debugStorage = () => StorageDebugger.runDiagnostic();
+    console.log('💡 Tip: Run window.debugStorage() in console to check localStorage');
+  }, [isAuthenticated, user, tasks]);
 
   // Show loading screen while checking auth
   if (authLoading) {
@@ -65,7 +80,7 @@ function App() {
 
           <main className="max-w-6xl mx-auto px-4 py-6">
             {tasksError && (
-              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 text-red-700 rounded-r-md">
+              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 text-red-700 rounded-r-md dark:bg-red-900/20 dark:border-red-600 dark:text-red-400">
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -112,6 +127,7 @@ function App() {
                           onEditTask={handleSetTaskToEdit}
                           onToggleComplete={handleToggleComplete}
                           isLoading={tasksLoading}
+                          title="My Study Tasks"
                         />
                       }
                     />
@@ -124,6 +140,7 @@ function App() {
                           onUpdateTask={handleUpdateTask}
                           existingTask={taskToEdit}
                           isLoading={tasksLoading}
+                          isEditing={false}
                         />
                       }
                     />

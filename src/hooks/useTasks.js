@@ -1,148 +1,188 @@
-// src/hooks/useTasks.js
+// src/hooks/useTasks.js - FINAL FIX - No flicker version
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 export const useTasks = (user) => {
     const [tasks, setTasks] = useState([]);
     const [taskToEdit, setTaskToEdit] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(true); // Start as loading
+    const [error] = useState(null);
+    const [initialized, setInitialized] = useState(false);
 
-    // Get user-specific storage key
-    const getUserTasksKey = useCallback((userId) => {
-        return userId ? `tasks_${userId}` : null;
-    }, []);
+    // Get the storage key for current user
+    const getStorageKey = useCallback(() => {
+        if (!user?.uid) return null;
+        return `tasks_${user.uid}`;
+    }, [user?.uid]);
 
-    // Load tasks for authenticated user
-    useEffect(() => {
-        if (user?.uid) {
-            setIsLoading(true);
-            setError(null);
-
-            try {
-                const userTasksKey = getUserTasksKey(user.uid);
-                const storedTasks = localStorage.getItem(userTasksKey);
-
-                if (storedTasks) {
-                    const parsedTasks = JSON.parse(storedTasks);
-                    setTasks(Array.isArray(parsedTasks) ? parsedTasks : []);
-                } else {
-                    setTasks([]);
-                }
-            } catch (err) {
-                console.error("Error loading tasks:", err);
-                setError(err);
-                setTasks([]);
-            } finally {
-                setIsLoading(false);
-            }
-        } else {
-            setTasks([]);
+    // Load tasks from localStorage
+    const loadTasksFromStorage = useCallback(() => {
+        const key = getStorageKey();
+        if (!key) {
+            return [];
         }
-    }, [user?.uid, getUserTasksKey]);
+
+        try {
+            const stored = localStorage.getItem(key);
+            console.log(`📂 Loading from key: ${key}`);
+
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                console.log(`✅ Loaded ${parsed.length} tasks from localStorage`);
+                return Array.isArray(parsed) ? parsed : [];
+            } else {
+                console.log(`📂 No data found for key: ${key}`);
+                return [];
+            }
+        } catch (e) {
+            console.error('❌ Error loading tasks:', e);
+            return [];
+        }
+    }, [getStorageKey]);
 
     // Save tasks to localStorage
+    const saveTasksToStorage = useCallback((tasksToSave) => {
+        const key = getStorageKey();
+        if (!key) {
+            console.error('❌ Cannot save: No storage key');
+            return false;
+        }
+
+        try {
+            const json = JSON.stringify(tasksToSave);
+            localStorage.setItem(key, json);
+            console.log(`💾 SAVED ${tasksToSave.length} tasks to ${key}`);
+            return true;
+        } catch (e) {
+            console.error('❌ Error saving tasks:', e);
+            return false;
+        }
+    }, [getStorageKey]);
+
+    // Load tasks when user is available
     useEffect(() => {
-        if (user?.uid && tasks.length >= 0) {
-            try {
-                const userTasksKey = getUserTasksKey(user.uid);
-                localStorage.setItem(userTasksKey, JSON.stringify(tasks));
-            } catch (err) {
-                console.error("Error saving tasks:", err);
-                setError(err);
-            }
+        // Don't clear tasks if user is undefined during initial load
+        if (user === undefined && !initialized) {
+            console.log('⏳ Waiting for user initialization...');
+            return;
         }
-    }, [tasks, user?.uid, getUserTasksKey]);
 
-    // Add task handler
-    const handleAddTask = useCallback((newTask) => {
-        try {
-            const taskWithId = {
-                id: Date.now() + Math.random(), // More unique ID
-                ...newTask,
-                completed: false,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
-
-            setTasks(prev => [...prev, taskWithId]);
-            setError(null);
-        } catch (err) {
-            console.error("Error adding task:", err);
-            setError(err);
+        if (!user?.uid) {
+            console.log('🔄 No user - clearing tasks');
+            setTasks([]);
+            setIsLoading(false);
+            setInitialized(true);
+            return;
         }
-    }, []);
 
-    // Delete task handler
-    const handleDeleteTask = useCallback((id) => {
-        try {
-            setTasks(prev => prev.filter(task => task.id !== id));
+        console.log('🔄 useTasks: Loading for user', user.uid);
+        setIsLoading(true);
 
-            // Clear edit state if deleting the task being edited
-            if (taskToEdit?.id === id) {
-                setTaskToEdit(null);
-            }
+        // Load tasks
+        const loadedTasks = loadTasksFromStorage();
+        console.log('📥 Setting tasks in state:', loadedTasks.length, 'tasks');
+        setTasks(loadedTasks);
+        setIsLoading(false);
+        setInitialized(true);
 
-            setError(null);
-        } catch (err) {
-            console.error("Error deleting task:", err);
-            setError(err);
+    }, [user, loadTasksFromStorage, initialized]);
+
+    // ADD TASK
+    const handleAddTask = useCallback((taskData) => {
+        console.log('\n➕ ADD TASK CALLED');
+        console.log('   Input:', taskData);
+
+        if (!user?.uid) {
+            console.error('❌ Cannot add task: No user');
+            return;
         }
-    }, [taskToEdit?.id]);
 
-    // Update task handler
-    const handleUpdateTask = useCallback((updatedTask) => {
-        try {
-            const taskWithTimestamp = {
-                ...updatedTask,
-                updatedAt: new Date().toISOString(),
-            };
+        const newTask = {
+            id: Date.now(),
+            ...taskData,
+            title: taskData.title || `${taskData.subject} - ${taskData.topic}`,
+            category: taskData.category || taskData.subject,
+            completed: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
 
-            setTasks(prev =>
-                prev.map(task =>
-                    task.id === updatedTask.id ? taskWithTimestamp : task
-                )
-            );
+        console.log('   Created task:', newTask);
+
+        setTasks(prevTasks => {
+            const updated = [...prevTasks, newTask];
+            console.log('   Total tasks after add:', updated.length);
+            saveTasksToStorage(updated);
+            console.log('✅ Task added successfully');
+            return updated;
+        });
+
+    }, [user?.uid, saveTasksToStorage]);
+
+    // DELETE TASK
+    const handleDeleteTask = useCallback((taskId) => {
+        console.log('\n🗑️ DELETE TASK:', taskId);
+
+        setTasks(prevTasks => {
+            const updated = prevTasks.filter(task => task.id !== taskId);
+            console.log('   Remaining tasks:', updated.length);
+            saveTasksToStorage(updated);
+            return updated;
+        });
+
+        if (taskToEdit?.id === taskId) {
             setTaskToEdit(null);
-            setError(null);
-        } catch (err) {
-            console.error("Error updating task:", err);
-            setError(err);
         }
-    }, []);
+    }, [taskToEdit?.id, saveTasksToStorage]);
 
-    // Toggle complete handler
-    const handleToggleComplete = useCallback((id) => {
-        try {
-            setTasks(prev =>
-                prev.map(task =>
-                    task.id === id
-                        ? {
-                            ...task,
-                            completed: !task.completed,
-                            updatedAt: new Date().toISOString(),
-                            completedAt: !task.completed ? new Date().toISOString() : null,
-                        }
-                        : task
-                )
+    // UPDATE TASK
+    const handleUpdateTask = useCallback((updatedTask) => {
+        console.log('\n✏️ UPDATE TASK:', updatedTask.id);
+
+        setTasks(prevTasks => {
+            const updated = prevTasks.map(task =>
+                task.id === updatedTask.id
+                    ? { ...updatedTask, updatedAt: new Date().toISOString() }
+                    : task
             );
-            setError(null);
-        } catch (err) {
-            console.error("Error toggling task completion:", err);
-            setError(err);
-        }
-    }, []);
+            saveTasksToStorage(updated);
+            return updated;
+        });
 
-    // Set task to edit handler
+        setTaskToEdit(null);
+    }, [saveTasksToStorage]);
+
+    // TOGGLE COMPLETE
+    const handleToggleComplete = useCallback((taskId) => {
+        console.log('\n✓ TOGGLE COMPLETE:', taskId);
+
+        setTasks(prevTasks => {
+            const updated = prevTasks.map(task =>
+                task.id === taskId
+                    ? {
+                        ...task,
+                        completed: !task.completed,
+                        completedAt: !task.completed ? new Date().toISOString() : null,
+                        updatedAt: new Date().toISOString(),
+                    }
+                    : task
+            );
+            saveTasksToStorage(updated);
+            return updated;
+        });
+    }, [saveTasksToStorage]);
+
+    // SET TASK TO EDIT
     const handleSetTaskToEdit = useCallback((task) => {
+        console.log('📝 Setting task to edit:', task?.id);
         setTaskToEdit(task);
     }, []);
 
-    // Clear task to edit handler
+    // CLEAR TASK TO EDIT
     const handleClearTaskToEdit = useCallback(() => {
         setTaskToEdit(null);
     }, []);
 
-    // Memoized computed values
+    // Computed values
     const incompleteTasks = useMemo(() =>
         tasks.filter(task => !task.completed),
         [tasks]
@@ -157,7 +197,9 @@ export const useTasks = (user) => {
         total: tasks.length,
         completed: completedTasks.length,
         incomplete: incompleteTasks.length,
-        completionRate: tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0,
+        completionRate: tasks.length > 0
+            ? Math.round((completedTasks.length / tasks.length) * 100)
+            : 0,
     }), [tasks.length, completedTasks.length, incompleteTasks.length]);
 
     return {
