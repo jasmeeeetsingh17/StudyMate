@@ -1,4 +1,4 @@
-// src/components/TaskForm.js - FIXED VERSION
+// src/components/TaskForm.js - PRODUCTION VERSION (All console.log removed)
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Calendar, Flag, BookOpen, FileText, Save, Plus } from "lucide-react";
@@ -15,19 +15,13 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
     const navigate = useNavigate();
     const { id } = useParams();
 
-    // Load task data when editing
     useEffect(() => {
         if (isEditing && id) {
-            console.log('Edit mode: Loading task with ID:', id);
-
             const storedUser = JSON.parse(localStorage.getItem('studyMateUser'));
             if (storedUser?.uid) {
                 const userTasksKey = `tasks_${storedUser.uid}`;
                 const storedTasks = JSON.parse(localStorage.getItem(userTasksKey) || '[]');
-                console.log('All tasks:', storedTasks);
-
                 const taskToEdit = storedTasks.find(t => t.id === parseInt(id));
-                console.log('Found task to edit:', taskToEdit);
 
                 if (taskToEdit) {
                     setSubject(taskToEdit.subject || "");
@@ -40,7 +34,6 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
                 }
             }
         } else if (existingTask) {
-            console.log('Loading existing task:', existingTask);
             setSubject(existingTask.subject || "");
             setTopic(existingTask.topic || "");
             setDueDate(existingTask.dueDate || "");
@@ -74,7 +67,7 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
             case 'dueDate': setDueDate(value); break;
             case 'priority': setPriority(value); break;
             case 'notes': setNotes(value); break;
-            default: console.warn(`Unhandled field: ${field}`);
+            default: break;
         }
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
@@ -101,27 +94,19 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
             title: `${subject} - ${topic}`,
         };
 
-        console.log('Submitting task:', taskData);
-
         if (isEditing && id) {
-            // UPDATE existing task
             const updatedTask = {
                 ...taskData,
                 id: parseInt(id),
             };
 
-            console.log('Updating task:', updatedTask);
             onUpdateTask?.(updatedTask);
             toast.success('Task updated successfully!');
             navigate('/tasks');
         } else {
-            // ADD new task
-            console.log('Creating new task:', taskData);
             onAddTask?.(taskData);
             toast.success('Task created successfully!');
             resetForm();
-
-            // Navigate to tasks list after a short delay
             setTimeout(() => {
                 navigate('/tasks');
             }, 500);
@@ -150,7 +135,6 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
                 }}
             />
             <div className="bg-gray-800/90 backdrop-blur-lg border border-gray-700/50 rounded-3xl shadow-2xl shadow-black/50 p-8 w-full max-w-4xl relative">
-                {/* Header */}
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                         {isEditing ? <Save className="text-white" size={24} /> : <Plus className="text-white" size={24} />}
@@ -165,7 +149,6 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
 
                 <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        {/* Subject Field */}
                         <div className="space-y-2">
                             <label className="flex items-center gap-2 text-gray-300 font-medium">
                                 <BookOpen size={16} />
@@ -188,7 +171,6 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
                             )}
                         </div>
 
-                        {/* Topic Field */}
                         <div className="space-y-2">
                             <label className="flex items-center gap-2 text-gray-300 font-medium">
                                 <FileText size={16} />
@@ -211,7 +193,6 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
                             )}
                         </div>
 
-                        {/* Due Date Field */}
                         <div className="space-y-2">
                             <label className="flex items-center gap-2 text-gray-300 font-medium">
                                 <Calendar size={16} />
@@ -225,7 +206,6 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
                             />
                         </div>
 
-                        {/* Priority Field */}
                         <div className="space-y-2">
                             <label className="flex items-center gap-2 text-gray-300 font-medium">
                                 <Flag size={16} />
@@ -248,7 +228,6 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
                         </div>
                     </div>
 
-                    {/* Notes Field */}
                     <div className="space-y-2 mb-8">
                         <label className="flex items-center gap-2 text-gray-300 font-medium">
                             <FileText size={16} />
@@ -264,7 +243,6 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
                         />
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4">
                         <button
                             type="button"
@@ -292,7 +270,6 @@ export default function TaskForm({ onAddTask, onUpdateTask, existingTask, isEdit
                     </div>
                 </form>
 
-                {/* Visual Enhancement */}
                 <div className="absolute -top-1 -right-1 w-32 h-32 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
                 <div className="absolute -bottom-1 -left-1 w-32 h-32 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl"></div>
             </div>

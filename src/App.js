@@ -38,16 +38,9 @@ function App() {
     taskStats,
   } = useTasks(user);
 
-  // Debug: Log when user or tasks change (remove in production)
   useEffect(() => {
-    console.log('App state changed:');
-    console.log('  - isAuthenticated:', isAuthenticated);
-    console.log('  - user:', user);
-    console.log('  - tasks count:', tasks.length);
-
     // Make debugger available in console
     window.debugStorage = () => StorageDebugger.runDiagnostic();
-    console.log('💡 Tip: Run window.debugStorage() in console to check localStorage');
   }, [isAuthenticated, user, tasks]);
 
   // Show loading screen while checking auth

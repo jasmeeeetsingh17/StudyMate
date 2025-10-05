@@ -1,4 +1,4 @@
-// src/hooks/useAuth.js - FIXED VERSION with proper cleanup
+// src/hooks/useAuth.js - KEEP DATA AFTER LOGOUT VERSION
 import { useState, useEffect, useCallback } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase/firebase";
@@ -9,26 +9,16 @@ export const useAuth = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Clear ALL user data from localStorage
+    // Clear ONLY user data, NOT tasks
     const clearUserData = useCallback(() => {
         console.log('Clearing user data from localStorage');
 
-        // Get all keys before clearing
         const allKeys = Object.keys(localStorage);
         console.log('All localStorage keys before clearing:', allKeys);
 
-        // Clear specific user data
+        // ONLY remove user data
         localStorage.removeItem('studyMateUser');
 
-        // Clear all task keys (tasks_userId format)
-        allKeys.forEach(key => {
-            if (key.startsWith('tasks_')) {
-                localStorage.removeItem(key);
-                console.log('Removed key:', key);
-            }
-        });
-
-        // Also clear old format keys if they exist
         localStorage.removeItem('studyTasks');
         localStorage.removeItem('tasks');
 
@@ -49,12 +39,9 @@ export const useAuth = () => {
             lastLoginAt: new Date().toISOString(),
         };
 
-        console.log('Persisting user data:', userData);
         localStorage.setItem("studyMateUser", JSON.stringify(userData));
 
-        // Verify it was saved
-        const saved = localStorage.getItem("studyMateUser");
-        console.log('Verified saved user data:', saved);
+        localStorage.getItem("studyMateUser");
 
         return userData;
     }, []);
@@ -66,17 +53,16 @@ export const useAuth = () => {
             setIsLoading(true);
             setError(null);
 
-            // Clear data FIRST, before signing out
+            // Clear user data (but NOT tasks)
             clearUserData();
 
-            // Then sign out from Firebase
+            // Sign out from Firebase
             await signOut(auth);
 
             console.log('Logout complete');
         } catch (error) {
             console.error("Logout error:", error);
             setError(error);
-            // Even if signOut fails, still clear local data
             clearUserData();
         } finally {
             setIsLoading(false);
@@ -94,28 +80,19 @@ export const useAuth = () => {
                 setError(null);
 
                 if (firebaseUser) {
-                    console.log('Firebase user:', {
-                        uid: firebaseUser.uid,
-                        email: firebaseUser.email,
-                        displayName: firebaseUser.displayName
-                    });
 
-                    // User is signed in
                     const storedUserStr = localStorage.getItem("studyMateUser");
                     const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
-
-                    console.log('Stored user data:', storedUser);
 
                     const userData = persistUserData(firebaseUser, storedUser);
 
                     setUser(userData);
                     setIsAuthenticated(true);
 
-                    console.log('User authenticated:', userData);
                 } else {
                     console.log('No Firebase user, clearing data');
 
-                    // User is signed out - clear everything
+                    // Clear user data (but NOT tasks)
                     clearUserData();
                     setUser(null);
                     setIsAuthenticated(false);
