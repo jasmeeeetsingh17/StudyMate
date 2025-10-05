@@ -290,35 +290,6 @@ SOFTWARE.
 
 ---
 
-## 👨‍💻 Author
-
-**Jasmeet**
-- Email: jasmeet@gmail.com
-- GitHub: [@yourusername](https://github.com/yourusername)
-
----
-
-## 🙏 Acknowledgments
-
-- **React Team** - For the amazing framework
-- **Firebase** - For authentication services
-- **Tailwind CSS** - For the utility-first CSS framework
-- **Lucide** - For beautiful icons
-- **React Hot Toast** - For toast notifications
-- **Community** - For feedback and support
-
----
-
-## 📞 Support
-
-Need help? Here's how to get support:
-
-1. **Documentation** - Check this README first
-2. **Issues** - Open an issue on GitHub
-3. **Discussions** - Join GitHub Discussions
-4. **Email** - Contact: jasmeet@gmail.com
-
----
 
 ## 📊 Project Stats
 
@@ -335,40 +306,12 @@ If you find StudyMate useful, please consider giving it a star on GitHub! ⭐
 
 ---
 
-## 📝 Changelog
-
-### Version 2.0.0 (Current)
-- ✨ Complete UI redesign with modern aesthetics
-- 🔐 Firebase authentication integration
-- 💾 LocalStorage with user-specific data isolation
-- 📊 Advanced statistics and analytics
-- 🎨 Dark mode support (auto-detect)
-- ⚡ Performance optimizations
-- 🐛 Bug fixes and stability improvements
-
-### Version 1.0.0
-- 🎉 Initial release
-- Basic task management
-- Simple UI
-
----
-
 ## 🔗 Links
 
 - **Live Demo**: [https://studymate-demo.vercel.app](https://studymate-demo.vercel.app)
 - **Documentation**: [https://docs.studymate.app](https://docs.studymate.app)
 - **GitHub**: [https://github.com/yourusername/studymate](https://github.com/yourusername/studymate)
 - **Issues**: [https://github.com/yourusername/studymate/issues](https://github.com/yourusername/studymate/issues)
-
----
-
-## 💡 Tips for Students
-
-1. **Set Realistic Goals** - Don't overload yourself
-2. **Use Priorities** - Focus on high-priority tasks first
-3. **Regular Reviews** - Check your stats weekly
-4. **Stay Organized** - Use categories effectively
-5. **Track Progress** - Celebrate completed tasks!
 
 ---
 
