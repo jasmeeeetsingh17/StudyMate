@@ -306,15 +306,6 @@ If you find StudyMate useful, please consider giving it a star on GitHub! ⭐
 
 ---
 
-## 🔗 Links
-
-- **Live Demo**: [https://studymate-demo.vercel.app](https://studymate-demo.vercel.app)
-- **Documentation**: [https://docs.studymate.app](https://docs.studymate.app)
-- **GitHub**: [https://github.com/yourusername/studymate](https://github.com/yourusername/studymate)
-- **Issues**: [https://github.com/yourusername/studymate/issues](https://github.com/yourusername/studymate/issues)
-
----
-
 <div align="center">
 
 **Made with ❤️ for students by students**
