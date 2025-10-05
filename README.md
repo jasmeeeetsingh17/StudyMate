@@ -229,7 +229,7 @@ StudyMate works on all modern browsers:
 - ✅ Edge
 - ✅ Opera
 
-**Note:** Internet Explorer is not supported.
+
 
 ---
 
