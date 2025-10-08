@@ -1,131 +1,119 @@
-// src/components/TaskList.js - FIXED to use tasks from props, not localStorage
-import { useState, useEffect } from "react";
+import { useState, useMemo, useRef } from "react";
 import { BookOpen, Search, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TaskItem from "./TaskItem";
+import { TaskListSkeleton } from "./LoadingSkeletons";
+import { QuickAddBar } from "./QuickAddBar";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 
-export default function TaskList({ tasks = [], onDeleteTask, onEditTask, onToggleComplete, isLoading }) {
+export default function TaskList({ tasks = [], onDeleteTask, onEditTask, onToggleComplete, onAddTask, isLoading }) {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState("");
     const [filter, setFilter] = useState("all");
     const [sortBy, setSortBy] = useState("dueDate");
     const [selectedTasks, setSelectedTasks] = useState(new Set());
-    const [showBulkActions, setShowBulkActions] = useState(false);
+    const [setShowShortcuts] = useState(false);
+    const searchInputRef = useRef(null);
 
-    // Log when tasks prop changes (for debugging)
-    useEffect(() => {
-        console.log('TaskList received tasks:', tasks);
-        console.log('Tasks count:', tasks.length);
-    }, [tasks]);
+    // Keyboard shortcuts
+    useKeyboardShortcuts({
+        onNewTask: () => navigate("/add-task"),
+        onSearch: () => searchInputRef.current?.focus(),
+    });
 
-    // Handlers - use callbacks passed from parent
-    const handleDelete = (taskId) => {
-        console.log('TaskList: Deleting task', taskId);
-        onDeleteTask?.(taskId);
-    };
+    // Filter tasks
+    const filteredTasks = useMemo(() => {
+        return tasks.filter(task => {
+            if (filter === "completed") return task.completed;
+            if (filter === "pending") return !task.completed;
+            return true;
+        });
+    }, [tasks, filter]);
 
-    const handleToggleComplete = (taskId) => {
-        console.log('TaskList: Toggling completion for task', taskId);
-        onToggleComplete?.(taskId);
-    };
+    // Sort tasks
+    const sortedTasks = useMemo(() => {
+        return [...filteredTasks].sort((a, b) => {
+            switch (sortBy) {
+                case "dueDate":
+                    if (!a.dueDate && !b.dueDate) return 0;
+                    if (!a.dueDate) return 1;
+                    if (!b.dueDate) return -1;
+                    return new Date(a.dueDate) - new Date(b.dueDate);
+                case "priority":
+                    const order = { high: 3, medium: 2, low: 1 };
+                    return (order[b.priority?.toLowerCase()] || 1) - (order[a.priority?.toLowerCase()] || 1);
+                case "title":
+                    const titleA = a.title || a.subject || "";
+                    const titleB = b.title || b.subject || "";
+                    return titleA.localeCompare(titleB);
+                case "created":
+                    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+                default:
+                    return 0;
+            }
+        });
+    }, [filteredTasks, sortBy]);
 
-    const handleEdit = (task) => {
-        console.log('TaskList: Editing task', task);
-        navigate(`/edit-task/${task.id}`);
-        onEditTask?.(task);
-    };
+    // Search tasks
+    const displayedTasks = useMemo(() => {
+        if (!searchTerm) return sortedTasks;
+        return sortedTasks.filter(task => {
+            const searchLower = searchTerm.toLowerCase();
+            const title = (task.title || task.subject || task.topic || "").toLowerCase();
+            const category = (task.category || "").toLowerCase();
+            const topic = (task.topic || "").toLowerCase();
+            return title.includes(searchLower) || category.includes(searchLower) || topic.includes(searchLower);
+        });
+    }, [sortedTasks, searchTerm]);
 
-    // Bulk actions
+    // Task counts
+    const taskCounts = useMemo(() => ({
+        all: tasks.length,
+        pending: tasks.filter(t => !t.completed).length,
+        completed: tasks.filter(t => t.completed).length,
+    }), [tasks]);
+
+    // Bulk selection
     const handleSelectTask = (taskId, isSelected) => {
         const newSelected = new Set(selectedTasks);
         if (isSelected) newSelected.add(taskId);
         else newSelected.delete(taskId);
         setSelectedTasks(newSelected);
-        setShowBulkActions(newSelected.size > 0);
     };
 
     const handleSelectAll = () => {
-        if (selectedTasks.size === displayedTasks.length && displayedTasks.length > 0) {
+        if (selectedTasks.size === displayedTasks.length) {
             setSelectedTasks(new Set());
-            setShowBulkActions(false);
         } else {
             setSelectedTasks(new Set(displayedTasks.map(t => t.id)));
-            setShowBulkActions(true);
         }
     };
 
     const handleBulkComplete = () => {
-        console.log('Bulk completing tasks:', Array.from(selectedTasks));
-        selectedTasks.forEach(id => {
-            onToggleComplete?.(id);
-        });
+        selectedTasks.forEach(id => onToggleComplete(id));
         setSelectedTasks(new Set());
-        setShowBulkActions(false);
     };
 
     const handleBulkDelete = () => {
-        if (window.confirm(`Delete ${selectedTasks.size} selected task(s)?`)) {
-            console.log('Bulk deleting tasks:', Array.from(selectedTasks));
-            selectedTasks.forEach(id => {
-                onDeleteTask?.(id);
-            });
+        if (window.confirm(`Delete ${selectedTasks.size} selected tasks?`)) {
+            selectedTasks.forEach(id => onDeleteTask(id));
             setSelectedTasks(new Set());
-            setShowBulkActions(false);
         }
     };
 
-    // Filter tasks
-    const filteredTasks = tasks.filter(task => {
-        if (filter === "all") return true;
-        if (filter === "completed") return task.completed;
-        if (filter === "pending") return !task.completed;
-        return true;
-    });
-
-    // Sort tasks
-    const sortedTasks = [...filteredTasks].sort((a, b) => {
-        switch (sortBy) {
-            case "dueDate":
-                if (!a.dueDate && !b.dueDate) return 0;
-                if (!a.dueDate) return 1;
-                if (!b.dueDate) return -1;
-                return new Date(a.dueDate) - new Date(b.dueDate);
-            case "priority":
-                const order = { High: 3, Medium: 2, Low: 1 };
-                return (order[b.priority] || 1) - (order[a.priority] || 1);
-            case "title":
-                const titleA = a.title || a.subject || "";
-                const titleB = b.title || b.subject || "";
-                return titleA.localeCompare(titleB);
-            case "created":
-                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-            default:
-                return 0;
-        }
-    });
-
-    // Search within sorted tasks
-    const displayedTasks = sortedTasks.filter(task => {
-        const searchLower = searchTerm.toLowerCase();
-        const title = (task.title || task.subject || "").toLowerCase();
-        const topic = (task.topic || "").toLowerCase();
-        const category = (task.category || "").toLowerCase();
-        return title.includes(searchLower) || topic.includes(searchLower) || category.includes(searchLower);
-    });
-
-    const taskCounts = {
-        all: tasks.length,
-        pending: tasks.filter(t => !t.completed).length,
-        completed: tasks.filter(t => t.completed).length
-    };
-
-    // Show loading state
+    // Loading skeleton
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 p-6 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-400">Loading tasks...</p>
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 p-6">
+                <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-10">
+                        <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+                            <BookOpen className="text-white" size={24} />
+                        </div>
+                        <div className="h-8 bg-gray-700 rounded w-48 mx-auto mb-2"></div>
+                        <div className="h-4 bg-gray-700 rounded w-64 mx-auto"></div>
+                    </div>
+                    <TaskListSkeleton />
                 </div>
             </div>
         );
@@ -141,15 +129,25 @@ export default function TaskList({ tasks = [], onDeleteTask, onEditTask, onToggl
                     </div>
                     <h1 className="text-4xl font-bold text-white mb-2">My Study Tasks</h1>
                     <p className="text-gray-400 text-lg">Keep track of your learning goals</p>
+                    <button
+                        onClick={() => setShowShortcuts(true)}
+                        className="mt-2 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                    >
+                        Press Ctrl+/ for shortcuts
+                    </button>
                 </div>
+
+                {/* Quick Add Bar */}
+                <QuickAddBar onAddTask={onAddTask} existingTasks={tasks} />
 
                 {/* Search + Sort + Add */}
                 <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-6 mb-4 flex flex-col md:flex-row gap-4 items-center">
                     <div className="flex-1 relative w-full">
                         <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         <input
+                            ref={searchInputRef}
                             type="text"
-                            placeholder="Search tasks..."
+                            placeholder="Search tasks... (Ctrl+K)"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400"
@@ -168,21 +166,38 @@ export default function TaskList({ tasks = [], onDeleteTask, onEditTask, onToggl
                         </select>
                         <button
                             onClick={() => navigate("/add-task")}
-                            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl whitespace-nowrap"
+                            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl"
                         >
-                            <Plus size={20} /> Add Task
+                            <Plus size={20} /> <span className="hidden sm:inline">Add Task</span>
                         </button>
                     </div>
                 </div>
 
                 {/* Bulk actions */}
-                {showBulkActions && (
-                    <div className="bg-blue-600/20 backdrop-blur-lg rounded-2xl border border-blue-500/30 p-4 mb-4 flex flex-col sm:flex-row justify-between items-center gap-3">
-                        <span className="text-white font-medium">{selectedTasks.size} task{selectedTasks.size !== 1 ? "s" : ""} selected</span>
-                        <div className="flex gap-2 flex-wrap justify-center">
-                            <button onClick={handleBulkComplete} className="px-4 py-2 bg-green-600/30 hover:bg-green-600/50 text-green-300 rounded-lg text-sm font-medium transition-colors">Mark Complete</button>
-                            <button onClick={handleBulkDelete} className="px-4 py-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 rounded-lg text-sm font-medium transition-colors">Delete Selected</button>
-                            <button onClick={() => { setSelectedTasks(new Set()); setShowBulkActions(false); }} className="px-4 py-2 bg-gray-600/30 hover:bg-gray-600/50 text-gray-300 rounded-lg text-sm font-medium transition-colors">Clear Selection</button>
+                {selectedTasks.size > 0 && (
+                    <div className="bg-blue-600/20 backdrop-blur-lg rounded-2xl border border-blue-500/30 p-4 mb-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <span className="text-white font-medium">
+                            {selectedTasks.size} task{selectedTasks.size !== 1 ? "s" : ""} selected
+                        </span>
+                        <div className="flex gap-2 flex-wrap">
+                            <button
+                                onClick={handleBulkComplete}
+                                className="px-4 py-2 bg-green-600/30 hover:bg-green-600/50 text-green-300 rounded-lg text-sm font-medium transition-colors"
+                            >
+                                Mark Complete
+                            </button>
+                            <button
+                                onClick={handleBulkDelete}
+                                className="px-4 py-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 rounded-lg text-sm font-medium transition-colors"
+                            >
+                                Delete Selected
+                            </button>
+                            <button
+                                onClick={() => setSelectedTasks(new Set())}
+                                className="px-4 py-2 bg-gray-600/30 hover:bg-gray-600/50 text-gray-300 rounded-lg text-sm font-medium transition-colors"
+                            >
+                                Clear Selection
+                            </button>
                         </div>
                     </div>
                 )}
@@ -191,7 +206,10 @@ export default function TaskList({ tasks = [], onDeleteTask, onEditTask, onToggl
                 <div className="flex justify-center items-center mb-6 space-x-4 flex-wrap gap-2">
                     {displayedTasks.length > 0 && (
                         <>
-                            <button onClick={handleSelectAll} className="px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors">
+                            <button
+                                onClick={handleSelectAll}
+                                className="px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors"
+                            >
                                 {selectedTasks.size === displayedTasks.length ? "Deselect All" : "Select All"}
                             </button>
                             <div className="h-4 w-px bg-gray-600"></div>
@@ -206,7 +224,6 @@ export default function TaskList({ tasks = [], onDeleteTask, onEditTask, onToggl
                                 onClick={() => {
                                     setFilter(key);
                                     setSelectedTasks(new Set());
-                                    setShowBulkActions(false);
                                 }}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === key
                                     ? "bg-blue-600 text-white shadow-lg"
@@ -250,9 +267,9 @@ export default function TaskList({ tasks = [], onDeleteTask, onEditTask, onToggl
                             <TaskItem
                                 key={task.id}
                                 task={task}
-                                onDelete={handleDelete}
-                                onEdit={handleEdit}
-                                onToggleComplete={handleToggleComplete}
+                                onDelete={onDeleteTask}
+                                onEdit={onEditTask}
+                                onToggleComplete={onToggleComplete}
                                 isSelected={selectedTasks.has(task.id)}
                                 onSelect={handleSelectTask}
                             />

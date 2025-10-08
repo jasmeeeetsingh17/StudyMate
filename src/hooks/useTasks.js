@@ -1,5 +1,5 @@
-// src/hooks/useTasks.js - PRODUCTION VERSION (All console.log removed)
 import { useState, useEffect, useCallback, useMemo } from "react";
+import toast from 'react-hot-toast';
 
 export const useTasks = (user) => {
     const [tasks, setTasks] = useState([]);
@@ -7,6 +7,7 @@ export const useTasks = (user) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error] = useState(null);
     const [initialized, setInitialized] = useState(false);
+    const [deletedTask, setDeletedTask] = useState(null); // For undo
 
     const getStorageKey = useCallback(() => {
         if (!user?.uid) return null;
@@ -83,7 +84,34 @@ export const useTasks = (user) => {
 
     }, [user?.uid, saveTasksToStorage]);
 
+    // ✅ Move Undo Delete ABOVE Delete Task
+    const handleUndoDelete = useCallback(() => {
+        if (!deletedTask) return;
+
+        setTasks(prevTasks => {
+            const updated = [...prevTasks, deletedTask];
+            saveTasksToStorage(updated);
+            return updated;
+        });
+
+        setDeletedTask(null);
+        toast.success('Task restored!', {
+            style: {
+                background: '#334155',
+                color: '#f1f5f9',
+            },
+        });
+    }, [deletedTask, saveTasksToStorage]);
+
+    // ✅ Delete with Undo Option
     const handleDeleteTask = useCallback((taskId) => {
+        const taskToDelete = tasks.find(t => t.id === taskId);
+        if (!taskToDelete) return;
+
+        // Store deleted task for undo
+        setDeletedTask(taskToDelete);
+
+        // Remove from list
         setTasks(prevTasks => {
             const updated = prevTasks.filter(task => task.id !== taskId);
             saveTasksToStorage(updated);
@@ -93,7 +121,35 @@ export const useTasks = (user) => {
         if (taskToEdit?.id === taskId) {
             setTaskToEdit(null);
         }
-    }, [taskToEdit?.id, saveTasksToStorage]);
+
+        // Show undo toast
+        toast((t) => (
+            <div className="flex items-center gap-3">
+                <span>Task deleted</span>
+                <button
+                    onClick={() => {
+                        handleUndoDelete();
+                        toast.dismiss(t.id);
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium text-sm"
+                >
+                    Undo
+                </button>
+            </div>
+        ), {
+            duration: 5000,
+            style: {
+                background: '#334155',
+                color: '#f1f5f9',
+            },
+        });
+
+        // Clear deleted task after 5 seconds (can't undo after that)
+        setTimeout(() => {
+            setDeletedTask(null);
+        }, 5000);
+
+    }, [tasks, taskToEdit?.id, saveTasksToStorage, handleUndoDelete]);
 
     const handleUpdateTask = useCallback((updatedTask) => {
         setTasks(prevTasks => {
@@ -167,5 +223,6 @@ export const useTasks = (user) => {
         handleToggleComplete,
         handleSetTaskToEdit,
         handleClearTaskToEdit,
+        handleUndoDelete,
     };
 };
