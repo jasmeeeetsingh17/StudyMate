@@ -176,10 +176,10 @@ export const EnhancedTextarea = ({
                     maxLength={maxLength}
                     rows={rows}
                     className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl focus:outline-none focus:ring-2 text-gray-100 placeholder-gray-400 transition-all duration-200 hover:border-gray-500 resize-none ${showValidation
-                            ? isValid
-                                ? 'border-green-500 focus:ring-green-500'
-                                : 'border-red-500 focus:ring-red-500'
-                            : 'border-gray-600 focus:ring-blue-500'
+                        ? isValid
+                            ? 'border-green-500 focus:ring-green-500'
+                            : 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-600 focus:ring-blue-500'
                         } ${className}`}
                 />
 

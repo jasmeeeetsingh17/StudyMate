@@ -17,7 +17,7 @@ export default function TaskList({ tasks = [], onDeleteTask, onEditTask, onToggl
 
     // Keyboard shortcuts
     useKeyboardShortcuts({
-        onNewTask: () => navigate("/add-task"),
+        onNewTask: () => navigate('/add-task'),
         onSearch: () => searchInputRef.current?.focus(),
     });
 
@@ -70,14 +70,17 @@ export default function TaskList({ tasks = [], onDeleteTask, onEditTask, onToggl
     const taskCounts = useMemo(() => ({
         all: tasks.length,
         pending: tasks.filter(t => !t.completed).length,
-        completed: tasks.filter(t => t.completed).length,
+        completed: tasks.filter(t => t.completed).length
     }), [tasks]);
 
-    // Bulk selection
+    // Bulk actions
     const handleSelectTask = (taskId, isSelected) => {
         const newSelected = new Set(selectedTasks);
-        if (isSelected) newSelected.add(taskId);
-        else newSelected.delete(taskId);
+        if (isSelected) {
+            newSelected.add(taskId);
+        } else {
+            newSelected.delete(taskId);
+        }
         setSelectedTasks(newSelected);
     };
 
@@ -101,7 +104,6 @@ export default function TaskList({ tasks = [], onDeleteTask, onEditTask, onToggl
         }
     };
 
-    // Loading skeleton
     if (isLoading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 p-6">
